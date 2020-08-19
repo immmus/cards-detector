@@ -1,0 +1,1 @@
+call java cards-detector-jar-with-dependencies.jar
