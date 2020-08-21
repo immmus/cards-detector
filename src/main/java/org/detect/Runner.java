@@ -20,11 +20,13 @@ public class Runner {
                 System.out.println("enter path or q for stop");
                 line = reader.readLine();
                 if (!line.isBlank() && Files.exists(Path.of(line))) {
+                    final long start = System.currentTimeMillis();
                     Files.walk(Path.of(line))
                             .filter(Files::isRegularFile)
                             .map(CardDetector::of)
                             .filter(Objects::nonNull)
                             .forEach(CardDetector::getCards);
+                    log.info("Time of processing file / files - {} mc", System.currentTimeMillis() - start);
                 } else {
                     if (!"q".equals(line)) {
                         log.error(line + " is not exist.");
