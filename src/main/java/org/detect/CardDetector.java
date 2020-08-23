@@ -1,95 +1,84 @@
 package org.detect;
 
-import org.detect.diapasons.CardRankDiapasons;
-import org.detect.diapasons.SuitDiapasons;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
-import static org.detect.ConsoleHelper.*;
-import static org.detect.ImageExtractor.getBottom;
-import static org.detect.ImageExtractor.getTop;
-import static org.detect.MatrixUtil.calculateMatrixValue;
+public class CardDetector {
+    static AtomicBoolean isPrintAdditionalInfo = new AtomicBoolean(false);
+    private static final Logger log = LoggerFactory.getLogger(Runner.class);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(8);
 
-final class CardDetector {
-    private static final Logger log = LoggerFactory.getLogger(CardDetector.class);
-
-    private final List<BufferedImage> cards;
-    private final static int CARD_WIDTH = 56;
-    private final static int CARD_HEIGHT = 78;
-    private final static int CARD_DELIMITER = 16;
-
-    public static CardDetector of(Path path) {
-        System.out.print(path.getFileName() + " - ");
-        try (var is = Files.newInputStream(path, StandardOpenOption.READ)) {
-            final BufferedImage image = ImageIO.read(is);
-            return new CardDetector(image);
+    public void run() {
+        try (var reader = new BufferedReader(new InputStreamReader(System.in))) {
+            for (String line; !executorService.isTerminated(); ) {
+                log.info("enter path or q for stop. For additional info enter 'einfo'");
+                line = reader.readLine();
+                processing(line);
+            }
         } catch (IOException e) {
-            log.error("IO error", e);
+            log.error(e.getMessage());
         }
-        return null;
     }
 
-    public CardDetector(BufferedImage image) {
-        final var detectedArea = image.getSubimage(146, 590, 346, CARD_HEIGHT);
-        final var cards = new ArrayList<BufferedImage>();
-
-        for (int x = 0; x < detectedArea.getWidth(); x += CARD_WIDTH + CARD_DELIMITER) {
-            cards.add(detectedArea.getSubimage(x, 0, CARD_WIDTH, CARD_HEIGHT));
-        }
-
-        this.cards = Collections.unmodifiableList(cards);
-    }
-
-    public void getCards() {
-        getCards(false);
-    }
-
-    public void getCards(boolean isPrintAdditionalInfo) {
-        for (BufferedImage card : cards) {
-            BufferedImage text = card.getSubimage(0, 0, 32, 26);
-            BufferedImage suit = card.getSubimage(21, 43, 33, CARD_HEIGHT - 43);
-
-            detectText(text)
-                    .map(CardRankDiapasons::getShortDescription)
-                    .ifPresent(System.out::print);
-
-            if (isPrintAdditionalInfo) {
-                printValues(text);
-            }
-
-            detectSuits(suit)
-                    .map(SuitDiapasons::getShortDescription)
-                    .ifPresent(System.out::print);
-
-            if (isPrintAdditionalInfo) {
-                printValues(suit);
+    private void processing(final String line) {
+        if ("q".equals(line)) {
+            close();
+        } else if ("einfo".equals(line)) {
+            isPrintAdditionalInfo.set(true);
+            log.info("Additional information enable. For disable enter 'dinfo'");
+        } else if ("dinfo".equals(line)) {
+            isPrintAdditionalInfo.set(false);
+            log.info("Additional information disable.");
+        } else {
+            try {
+                detect(line);
+            } catch (IOException | InterruptedException | ExecutionException e) {
+                log.error(e.getMessage());
+                close();
             }
         }
-        System.out.println();
     }
 
-    private Optional<CardRankDiapasons> detectText(BufferedImage img) {
-        final BufferedImage top = getTop(img);
-        final BufferedImage bottom = getBottom(img);
-        final double topSum = calculateMatrixValue(top);
-        final double bottomSum = calculateMatrixValue(bottom);
-        return Arrays.stream(CardRankDiapasons.values())
-                .filter(p -> p.test(topSum, bottomSum))
-                .findAny();
+    private void detect(String path) throws IOException, InterruptedException, ExecutionException {
+        if (!path.isBlank() && Files.exists(Path.of(path))) {
+            final long start = System.currentTimeMillis();
+            final List<CardDetectorTask> tasks = Files.walk(Path.of(path))
+                    .filter(Files::isRegularFile)
+                    .map(CardDetectorTask::new)
+                    .collect(Collectors.toList());
+
+            final List<Future<String>> futures = executorService.invokeAll(tasks);
+            int filesCount = 0;
+            for (Future<String> future : futures) {
+                System.out.println(future.get());
+                filesCount++;
+            }
+            log.info("Time of processing {} file / files - {} mc",
+                    filesCount, System.currentTimeMillis() - start);
+        } else {
+            log.error(path + " is not exist.");
+        }
     }
 
-    private Optional<SuitDiapasons> detectSuits(BufferedImage img) {
-        final double val = calculateMatrixValue(img);
-        return Arrays.stream(SuitDiapasons.values())
-                .filter(p -> p.test(val))
-                .findAny();
+    private void close() {
+        executorService.shutdown();
+        try {
+            if (executorService.awaitTermination(3, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            log.error(e.getMessage());
+            executorService.shutdownNow();
+        }
     }
 }

@@ -7,7 +7,7 @@ import java.util.function.Predicate;
 
 @Getter
 @RequiredArgsConstructor
-public enum SuitDiapasons implements Predicate<Double> {
+public enum SuitDiapasons implements Diapasons, Predicate<Double> {
     DIAMONDS(sum -> sum >= 0.4600 && sum <= 0.4700, "DIAMONDS(БУБИ)", "b"),
     CLUBS(sum -> sum >= 0.5480 && sum <= 0.5700, "CLUBS(ТРЕФЫ)", "c"),
     SPADES(sum -> sum >= 0.5260 && sum <= 0.5400, "SPADES(ПИКИ)", "s"),
