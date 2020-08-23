@@ -8,10 +8,10 @@ import java.util.function.Predicate;
 @Getter
 @RequiredArgsConstructor
 public enum SuitDiapasons implements Diapasons, Predicate<Double> {
-    DIAMONDS(sum -> sum >= 0.4600 && sum <= 0.4700, "DIAMONDS(БУБИ)", "b"),
-    CLUBS(sum -> sum >= 0.5480 && sum <= 0.5700, "CLUBS(ТРЕФЫ)", "c"),
-    SPADES(sum -> sum >= 0.5260 && sum <= 0.5400, "SPADES(ПИКИ)", "s"),
-    HEARTS(sum -> sum >= 0.5050 && sum <= 0.5200, "HEARTS(ЧЕРВЫ)", "h"),
+    DIAMONDS(sum -> sum >= 0.4500 && sum <= 0.4650, "DIAMONDS(БУБИ)", "b"),
+    CLUBS(sum -> sum >= 0.5450 && sum <= 0.5650, "CLUBS(ТРЕФЫ)", "c"),
+    SPADES(sum -> sum >= 0.5250 && sum <= 0.5400, "SPADES(ПИКИ)", "s"),
+    HEARTS(sum -> sum >= 0.5000 && sum <= 0.5100, "HEARTS(ЧЕРВЫ)", "h"),
     NOT_DETECTED(
             sum -> !DIAMONDS.test(sum)
                     && !CLUBS.test(sum)

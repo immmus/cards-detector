@@ -10,13 +10,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import static org.detect.ConsoleHelper.isPrintAdditionalInfo;
+
 public class CardDetector {
-    static AtomicBoolean isPrintAdditionalInfo = new AtomicBoolean(false);
     private static final Logger log = LoggerFactory.getLogger(Runner.class);
-    private final ExecutorService executorService = Executors.newFixedThreadPool(8);
+    private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
+    private final ExecutorService executorService = Executors.newFixedThreadPool(CPU_COUNT);
 
     public void run() {
         try (var reader = new BufferedReader(new InputStreamReader(System.in))) {
@@ -66,7 +67,7 @@ public class CardDetector {
             log.info("Time of processing {} file / files - {} mc",
                     filesCount, System.currentTimeMillis() - start);
         } else {
-            log.error(path + " is not exist.");
+            log.error(path + " path is not exist.");
         }
     }
 

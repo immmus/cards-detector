@@ -12,19 +12,18 @@ public class MatrixUtil {
         for (int x = 0; x < image.getWidth(); x++) {
             for (int y = 0; y < image.getHeight(); y++) {
                 final Color color = new Color(image.getRGB(x, y));
-                matrix[y][x] = isCorrectColor(color.getRed(), color.getGreen(), color.getBlue())
-                        ? 1 : 0;
+                matrix[y][x] = isCorrectColor(color) ? 1 : 0;
             }
         }
         return matrix;
     }
 
-    public static double calculateMatrixValue(BufferedImage image) {
+    public static double calculateMatrixValue(final BufferedImage image) {
         double sum = 0;
-        for (int x = 0; x < image.getWidth(); x++) {
-            for (int y = 0; y < image.getHeight(); y++) {
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
                 final Color color = new Color(image.getRGB(x, y));
-                if (isCorrectColor(color.getRed(), color.getGreen(), color.getBlue())) {
+                if (isCorrectColor(color)) {
                     sum++;
                 }
             }
@@ -34,9 +33,9 @@ public class MatrixUtil {
         return BigDecimal.valueOf(sum / a).setScale(4, RoundingMode.HALF_DOWN).doubleValue();
     }
 
-    private static boolean isCorrectColor(int red, int green, int blue) {
-        return red != 120 && red != 255
-                && green != 120 && green != 255
-                && blue != 120 && blue != 255;
+    private static boolean isCorrectColor(final Color c) {
+        return c.getRed() != 120 && c.getRed() != 255
+                && c.getGreen() != 120 && c.getGreen() != 255
+                && c.getBlue() != 120 && c.getBlue() != 255;
     }
 }

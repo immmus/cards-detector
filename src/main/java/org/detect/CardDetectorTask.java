@@ -2,6 +2,7 @@ package org.detect;
 
 import org.detect.diapasons.CardRankDiapasons;
 import org.detect.diapasons.Diapasons;
+import org.detect.diapasons.RankAreasSums;
 import org.detect.diapasons.SuitDiapasons;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,10 +16,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-import static org.detect.CardDetector.isPrintAdditionalInfo;
-import static org.detect.ConsoleHelper.additionalValue;
-import static org.detect.ImageExtractor.getBottom;
-import static org.detect.ImageExtractor.getTop;
+import static org.detect.ConsoleHelper.additionalInfo;
+import static org.detect.ConsoleHelper.isPrintAdditionalInfo;
 import static org.detect.MatrixUtil.calculateMatrixValue;
 
 final class CardDetectorTask implements Callable<String> {
@@ -58,11 +57,11 @@ final class CardDetectorTask implements Callable<String> {
             BufferedImage text = card.getSubimage(0, 0, 32, 26);
             BufferedImage suit = card.getSubimage(21, 43, 33, CARD_HEIGHT - 43);
 
-            final var textDetect = detectText(text);
             final var n = System.lineSeparator();
+            final var textDetect = detectText(text);
             if (isPrintAdditionalInfo.get()) {
                 result.append(textDetect.map(Diapasons::getDescription).orElse(""));
-                result.append(n).append(additionalValue(text));
+                result.append(n).append(additionalInfo(text));
             } else {
                 result.append(textDetect.map(Diapasons::getShortDescription).orElse(""));
             }
@@ -70,7 +69,7 @@ final class CardDetectorTask implements Callable<String> {
             final var suitDetect = detectSuits(suit);
             if (isPrintAdditionalInfo.get()) {
                 result.append(suitDetect.map(Diapasons::getDescription).orElse(""));
-                result.append(n).append(additionalValue(suit));
+                result.append(n).append(additionalInfo(suit));
             } else {
                 result.append(suitDetect.map(Diapasons::getShortDescription).orElse(""));
             }
@@ -79,12 +78,9 @@ final class CardDetectorTask implements Callable<String> {
     }
 
     private Optional<Diapasons> detectText(BufferedImage img) {
-        final BufferedImage top = getTop(img);
-        final BufferedImage bottom = getBottom(img);
-        final double topSum = calculateMatrixValue(top);
-        final double bottomSum = calculateMatrixValue(bottom);
+        final var areasSums = new RankAreasSums(img);
         return Arrays.stream(CardRankDiapasons.values())
-                .filter(p -> p.test(topSum, bottomSum))
+                .filter(p -> p.test(areasSums))
                 .map(d -> (Diapasons) d)
                 .findAny();
     }
