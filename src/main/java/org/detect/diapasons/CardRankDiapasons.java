@@ -7,7 +7,7 @@ import java.util.function.BiPredicate;
 
 @Getter
 @RequiredArgsConstructor
-public enum CardRankDiapasons implements BiPredicate<Double, Double> {
+public enum CardRankDiapasons implements Diapasons, BiPredicate<Double, Double> {
     SIX((top, bottom) -> (top >= 0.3050 && top <= 0.3210) && (bottom >= 0.3350 && bottom <= 0.3575), "SIX(ШЕСТЬ)", "6"),
     ACE((top, bottom) -> (top >= 0.2135 && top <= 0.2365) && (bottom >= 0.3695 && bottom <= 0.3935), "ACE(ТУЗ)", "A"),
     KING((top, bottom) -> (top >= 0.2680 && top <= 0.3119) && (bottom >= 0.3160 && bottom <= 0.3499), "KING(КОРОЛЬ)", "K"),

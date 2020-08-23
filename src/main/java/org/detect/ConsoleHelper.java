@@ -2,6 +2,7 @@ package org.detect;
 
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static org.detect.ImageExtractor.*;
 import static org.detect.MatrixUtil.calculateMatrixValue;
@@ -12,19 +13,15 @@ import static org.detect.MatrixUtil.createMatrix;
  * */
 public class ConsoleHelper {
 
-    public static void printMatrix(int[][] matrix) {
-        Arrays.stream(matrix)
-                .forEach(
-                        (row) -> {
-                            System.out.print("[");
-                            Arrays.stream(row).forEach(System.out::print);
-                            System.out.println("]");
-                        });
-        System.out.println();
-        System.out.println();
+    public static String getMatrixString(int[][] matrix) {
+        return Arrays.stream(matrix)
+                .map(row -> Arrays.stream(row)
+                        .mapToObj(String::valueOf)
+                        .collect(Collectors.joining("", "[", "]")))
+                .collect(Collectors.joining(System.lineSeparator()));
     }
 
-    public static void printValues(BufferedImage img) {
+    public static String additionalValue(final BufferedImage img) {
         final BufferedImage up = getTop(img);
         final BufferedImage down = getBottom(img);
 
@@ -33,19 +30,21 @@ public class ConsoleHelper {
         final double downLeft = calculateMatrixValue(getLeft(down));
         final double downRight = calculateMatrixValue(getRight(down));
 
+        final var sb = new StringBuilder();
         if(upLeft < 0.8 && upRight < 0.8) {
-            printMatrix(createMatrix(img));
+            final String matrixString = getMatrixString(createMatrix(img));
 
             final var n = System.lineSeparator();
-            System.out.println("Размер матрицы: \n" +
-                    "Вся матрица - " + calculateMatrixValue(img) + n + n +
-                    "Верхняя часть - " + calculateMatrixValue(up) + n +
-                    "Нижняя часть - " + calculateMatrixValue(down) + n + n +
-                    "Верхняя левая часть - " + upLeft + n +
-                    "Верхняя правая часть - " + upRight + n +
-                    "Нижняя левая часть - " + downLeft + n +
-                    "Нижняя правая часть - " + downRight + n
-            );
+            sb.append(matrixString).append(n);
+            sb.append("Размер матрицы: " ).append(n);
+            sb.append("Вся матрица - ").append(calculateMatrixValue(img)).append(n);
+            sb.append("Верхняя часть - ").append(calculateMatrixValue(up)).append(n);
+            sb.append("Нижняя часть - ").append(calculateMatrixValue(down)).append(n);
+            sb.append("Верхняя левая часть - ").append(upLeft).append(n);
+            sb.append("Верхняя правая часть - ").append(upRight).append(n);
+            sb.append("Нижняя левая часть - ").append(downLeft).append(n);
+            sb.append("Нижняя правая часть - ").append(downRight).append(n);
         }
+        return sb.toString();
     }
 }
