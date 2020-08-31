@@ -40,7 +40,7 @@ public class CardDetector {
     public void run() {
         try (var reader = new BufferedReader(new InputStreamReader(System.in))) {
             for (String line; !executorService.isTerminated(); ) {
-                log.info("enter path or q for stop. For additional info enter 'einfo'");
+                log.info("enter 'detect + path' or stop for terminate. For additional info enter 'einfo'");
                 line = reader.readLine();
                 commandsChecker.checkCommand(line);
             }
