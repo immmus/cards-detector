@@ -1,5 +1,7 @@
 package org.detect;
 
+import org.detect.commands.CommandsChecker;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,65 +15,67 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static org.detect.ConsoleHelper.isPrintAdditionalInfo;
+import static org.detect.commands.CommandsBuilder.command;
 
 public class CardDetector {
     private static final Logger log = LoggerFactory.getLogger(Runner.class);
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
     private final ExecutorService executorService = Executors.newFixedThreadPool(CPU_COUNT);
+    private final CommandsChecker commandsChecker;
+
+    public CardDetector() {
+        this.commandsChecker = new CommandsChecker()
+                .commands(() -> {
+                    command("detect", this::detect);
+                    command("stop", a -> close());
+                    //TODO подумать над реализацией опций к командам
+                    command("einfo", a -> isPrintAdditionalInfo.set(!isPrintAdditionalInfo.get()));
+                });
+    }
+
+    public CardDetector(CommandsChecker commandsChecker) {
+        this.commandsChecker = commandsChecker;
+    }
 
     public void run() {
         try (var reader = new BufferedReader(new InputStreamReader(System.in))) {
             for (String line; !executorService.isTerminated(); ) {
                 log.info("enter path or q for stop. For additional info enter 'einfo'");
                 line = reader.readLine();
-                processing(line);
+                commandsChecker.checkCommand(line);
             }
         } catch (IOException e) {
             log.error(e.getMessage());
         }
     }
 
-    private void processing(final String line) {
-        if ("q".equals(line)) {
-            close();
-        } else if ("einfo".equals(line)) {
-            isPrintAdditionalInfo.set(true);
-            log.info("Additional information enable. For disable enter 'dinfo'");
-        } else if ("dinfo".equals(line)) {
-            isPrintAdditionalInfo.set(false);
-            log.info("Additional information disable.");
-        } else {
+    public void detect(@NotNull final String path) {
+        if (!path.isBlank() && Files.exists(Path.of(path))) {
             try {
-                detect(line);
+                final long start = System.currentTimeMillis();
+                final List<CardDetectorTask> tasks = Files.walk(Path.of(path))
+                        .filter(Files::isRegularFile)
+                        .map(CardDetectorTask::new)
+                        .collect(Collectors.toList());
+
+                final List<Future<String>> futures = executorService.invokeAll(tasks);
+                int filesCount = 0;
+                for (Future<String> future : futures) {
+                    System.out.println(future.get());
+                    filesCount++;
+                }
+                log.info("Time of processing {} file / files - {} mc",
+                        filesCount, System.currentTimeMillis() - start);
             } catch (IOException | InterruptedException | ExecutionException e) {
                 log.error(e.getMessage());
                 close();
             }
-        }
-    }
-
-    private void detect(String path) throws IOException, InterruptedException, ExecutionException {
-        if (!path.isBlank() && Files.exists(Path.of(path))) {
-            final long start = System.currentTimeMillis();
-            final List<CardDetectorTask> tasks = Files.walk(Path.of(path))
-                    .filter(Files::isRegularFile)
-                    .map(CardDetectorTask::new)
-                    .collect(Collectors.toList());
-
-            final List<Future<String>> futures = executorService.invokeAll(tasks);
-            int filesCount = 0;
-            for (Future<String> future : futures) {
-                System.out.println(future.get());
-                filesCount++;
-            }
-            log.info("Time of processing {} file / files - {} mc",
-                    filesCount, System.currentTimeMillis() - start);
         } else {
             log.error(path + " path is not exist.");
         }
     }
 
-    private void close() {
+    public void close() {
         executorService.shutdown();
         try {
             if (executorService.awaitTermination(3, TimeUnit.SECONDS)) {
