@@ -59,13 +59,11 @@ public class CardDetector {
                         .collect(Collectors.toList());
 
                 final List<Future<String>> futures = executorService.invokeAll(tasks);
-                int filesCount = 0;
                 for (Future<String> future : futures) {
                     System.out.println(future.get());
-                    filesCount++;
                 }
                 log.info("Time of processing {} file / files - {} mc",
-                        filesCount, System.currentTimeMillis() - start);
+                        futures.size(), System.currentTimeMillis() - start);
             } catch (IOException | InterruptedException | ExecutionException e) {
                 log.error(e.getMessage());
                 close();
